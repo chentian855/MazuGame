@@ -233,6 +233,8 @@
         let scene, camera, renderer, controls;
         let mazu = null;
         let coins = [], tornadoes = [], shields = [];
+        let coinModel = null;
+        let longjuanfengModel = null;
         let score = 0;
         let currentLevel = 1;
         let targetCoins = [3, 3, 3, 9];
@@ -747,9 +749,6 @@
             loader.load('https://github.com/chentian855/MazuGame/releases/download/v1.0/mazu.glb', (gltf) => { if(mazu) scene.remove(mazu); mazu = gltf.scene; mazu.scale.set(0.7,0.7,0.7); mazu.position.set(0,0,0); mazu.castShadow=true; scene.add(mazu); }, undefined, (err) => { console.warn("妈祖模型加载失败，使用立方体", err); mazu = mazuBox; scene.add(mazu); });
             loader.load('https://github.com/chentian855/MazuGame/releases/download/v1.0/shuixiashijie.glb', (gltf) => { const env = gltf.scene; env.position.y = -1.5; scene.add(env); }, undefined, () => {});
             // 预加载铜钱和龙卷风模型（用于动态生成）
-            let coinModel = null;
-            let longjuanfengModel = null;
-
             new GLTFLoader().load('https://github.com/chentian855/MazuGame/releases/download/v1.0/coin.glb', (gltf) => { coinModel = gltf.scene; });
             new GLTFLoader().load('https://github.com/chentian855/MazuGame/releases/download/v1.0/longjuanfeng.glb', (gltf) => { longjuanfengModel = gltf.scene; });
 
