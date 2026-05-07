@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>妈祖·风眼慈心 | 护海之旅</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'KaiTi', 'Microsoft YaHei', serif;
+        }
+        .story-modal, .level-select, .pause-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+        }
+        .story-card, .level-card {
+            background: #fef7e0;
+            border-radius: 48px;
+            padding: 30px 40px;
+            max-width: 550px;
+            text-align: center;
+            color: #3e2723;
+            border: 3px solid #ffb74d;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+            animation: fadeIn 0.2s ease;
+        }
+        .story-card h2, .level-card h2 {
+            color: #c62828;
+            margin-top: 0;
+        }
+        .story-card p {
+            font-size: 1.2rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .story-card button, .level-card button {
+            background: #ffb74d;
+            border: none;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            border-radius: 60px;
+            cursor: pointer;
+            margin: 8px;
+            font-weight: bold;
+        }
+        .story-card button:hover, .level-card button:hover {
+            background: #ffa01e;
+        }
+        .level-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .level-btn {
+            background: #ffb74d;
+            padding: 12px 20px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.1s;
+        }
+        .level-btn.disabled {
+            background: #aaa;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .level-btn:not(.disabled):hover {
+            background: #ffa01e;
+            transform: scale(1.02);
+        }
+        .pause-menu {
+            background: rgba(0,0,0,0.9);
+        }
+        .pause-menu .story-card {
+            background: #2c1e12;
+            color: #ffecb3;
+        }
+        .pause-menu button {
+            background: #c62828;
+            color: white;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            padding: 12px 24px;
+            border-radius: 40px;
+            color: #ffecb3;
+            z-index: 10;
+            pointer-events: none;
+            font-size: 20px;
+            border-left: 5px solid #ffaa44;
+        }
+        #score {
+            color: #ffdd88;
+            font-weight: bold;
+        }
+        #controls-tip {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #ccc;
+            z-index: 10;
+            pointer-events: none;
+        }
+        .toast {
+            position: fixed;
+            bottom: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffaa44cc;
+            color: #3e2a1f;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            z-index: 90;
+            animation: fadeOut 1.5s forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            70% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); visibility: hidden; }
+        }
+        .hidden { display: none; }
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: linear-gradient(135deg, #0a2f44, #0a1f2e);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .start-card {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            padding: 50px 80px;
+            border: 2px solid #ffb74d;
+            text-align: center;
+        }
+        .start-card h1 {
+            font-size: 64px;
+            color: #ffecb3;
+            text-shadow: 4px 4px 0 #c62828;
+        }
+        .start-card p {
+            font-size: 24px;
+            color: #ffdd99;
+            margin-bottom: 30px;
+        }
+        .start-card button {
+            background: #ffb74d;
+            border: none;
+            padding: 15px 40px;
+            font-size: 28px;
+            border-radius: 60px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .start-card button:hover {
+            background: #ffa01e;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <!-- 首页封面 -->
+    <div id="start-screen">
+        <div class="start-card">
+            <h1>妈祖 · 风眼慈心</h1>
+            <p>收集铜钱 · 护盾退魔 · 四关剧情</p>
+            <button id="start-game-btn">开始游戏</button>
+        </div>
+    </div>
+
+    <div id="level-select" class="level-select" style="display: none;">
+        <div class="level-card">
+            <h2>选择关卡</h2>
+            <div class="level-buttons">
+                <button data-level="1" class="level-btn">第一关 · 贪风礁</button>
+                <button data-level="2" class="level-btn disabled">第二关 · 怨浪湾</button>
+                <button data-level="3" class="level-btn disabled">第三关 · 空螺渊</button>
+                <button data-level="4" class="level-btn disabled">第四关 · 风眼祠</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="ui" style="display: none;">
+        <div>🌟 祈福值：<span id="score">0</span></div>
+        <div id="shield-status">🛡️ 护盾: 无</div>
+    </div>
+    <div id="controls-tip" style="display: none;">🖱️ 鼠标拖拽旋转视角 | ⌨️ WASD移动 | 空格/Q/ESC暂停 | R重开本关</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // ---------- 全局变量 ----------
+        let scene, camera, renderer, controls;
+        let mazu = null;
+        let coins = [], tornadoes = [], shields = [];
+        let score = 0;
+        let currentLevel = 1;
+        let targetCoins = [3, 3, 3, 9];
+        let shieldActive = false;
+        let shieldEndTime = 0;
+        let gameActive = false;
+        let paused = false;
+        let levelCompleted = false;
+        let storyTriggered = false;
+        let specialConditionMet = false;
+        let shieldPickupCount = 0;
+        
+        let tornadoStealInterval = null;
+        let shieldTimerInterval = null;
+        let tornadoRespawnTimer = null;
+        
+        let unlockedLevels = [true, false, false, false];
+        let currentPlayingLevel = null;
+        
+        // 音效与背景音乐
+        let soundCoin, soundHit, soundShield, soundShieldBlock, soundStoryClick;
+        let bgmGame, bgmStory, bgmPrologue, bgmTheater, bgmEnding;
+        let currentBGM = null;
+        
+        // 第四关速度倍数
+        let level4SpeedMultiplier = 1.0;
+        let lastSpeedIncreaseScore = 0;
+        
+        // 移动控制
+        const keyState = { w: false, s: false, a: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+        const moveSpeed = 4.5;
+        const boundary = 14;
+        
+        // UI元素
+        const scoreSpan = document.getElementById('score');
+        const shieldStatusSpan = document.getElementById('shield-status');
+        
+        // ----- 辅助函数 -----
+        function updateUI() {
+            scoreSpan.textContent = score + " / " + targetCoins[currentLevel-1];
+            if (shieldActive) {
+                const remain = Math.max(0, (shieldEndTime - Date.now()) / 1000).toFixed(1);
+                shieldStatusSpan.innerHTML = `🛡️ 护盾: ${remain}s`;
+            } else {
+                shieldStatusSpan.innerHTML = `🛡️ 护盾: 无`;
+            }
+        }
+        
+        function showMessage(msg, color = '#ffaa44') {
+            const div = document.createElement('div');
+            div.className = 'toast';
+            div.textContent = msg;
+            div.style.backgroundColor = color;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 1500);
+        }
+        
+        function playSound(sound) {
+            if (sound && sound.isPlaying) sound.stop();
+            if (sound) sound.play();
+        }
+        
+        function stopCurrentBGM() {
+            if (currentBGM && currentBGM.isPlaying) {
+                currentBGM.stop();
+                currentBGM = null;
+            }
+        }
+        
+        function playBGM(bgm, loop = true) {
+            if (!bgm) return;
+            stopCurrentBGM();
+            bgm.setLoop(loop);
+            bgm.play();
+            currentBGM = bgm;
+        }
+        
+        // ----- 逐条剧情（无改动）-----
+        function showStorySequential(lines, title, bgmType, onComplete) {
+            let currentIndex = 0;
+            const div = document.createElement('div');
+            div.className = 'story-modal';
+            div.innerHTML = `
+                <div class="story-card">
+                    <h2>${title}</h2>
+                    <p id="story-text">${lines[0]}</p>
+                    <button id="story-next-btn">继续</button>
+                </div>
+            `;
+            document.body.appendChild(div);
+            const textP = div.querySelector('#story-text');
+            const nextBtn = div.querySelector('#story-next-btn');
+            if (bgmType === 'prologue') playBGM(bgmPrologue);
+            else if (bgmType === 'story') playBGM(bgmStory);
+            else if (bgmType === 'theater') playBGM(bgmTheater);
+            else if (bgmType === 'ending') playBGM(bgmEnding);
+            nextBtn.onclick = () => {
+                playSound(soundStoryClick);
+                currentIndex++;
+                if (currentIndex < lines.length) {
+                    textP.textContent = lines[currentIndex];
+                } else {
+                    div.remove();
+                    if (gameActive && !paused && !levelCompleted) playBGM(bgmGame);
+                    if (onComplete) onComplete();
+                }
+            };
+        }
+        
+        const prologueLines = [
+            "渔民阿妹的小船被龙卷风卷到荒岛。妈祖的灵光从贝壳中浮现：",
+            "“孩子，海上有三道风眼，每道风眼里都镇压着一种‘执念’。你需要用铜钱换回渔民的善意，用护盾守护他们的性命。集齐三枚‘风眼贝’，我会带你回家。”",
+            "你揣着仅有的 3枚铜钱 和一面 破旧护盾，踏上归途。"
+        ];
+        const levelStories = {
+            1: ["礁石上困着一个老商人，他的船被龙卷风撕碎，正死死抱着一个钱箱不肯松手。","老商人喊：“给我铜钱！我要买回我的货！不给？那你也别想走！”","（收集3枚铜钱，用护盾救他）"],
+            2: ["海湾里有一艘“寡妇船”，船上的渔妇们哭诉丈夫被龙卷风卷走，变成怨浪拍打所有过路船。","一个老妇人低声说：“除非你帮我们找到丈夫留下的最后一样东西……”","（收集3枚铜钱，用护盾护住渔妇）"],
+            3: ["海底有一个巨大空螺壳，里面住着一个失去记忆的少年怨灵。他唯一的执念是——“我要集齐九枚铜钱买一朵不谢的花，送给没见过的妈妈。”","龙卷风在螺口旋转，每吹一次，你的铜钱就会少一枚。","（收集3枚铜钱，用护盾保护怨灵）"],
+            4: ["风眼正中没有风暴，只有一座破旧妈祖祠。祠中神像流泪：","“当年我为了平息此处的万年风眼，将自己困在这里。如今它快苏醒了，你需要用勇气和铜钱平息它。”","（收集9枚铜钱，每3枚会加速风暴）"]
+        };
+        const theaterLines = {
+            1: ["当护盾展开的蓝色光幕挡住风刃，老商人的钱箱被打翻——里面全是石头。","他愣住了：“我……我用真铜钱换了假货，又为假货差点丢了命……”","妈祖的声音：“放下执念，石头也会变回铜钱。”","地上的石头缓缓变成了真正的铜钱，老商人哭笑着交了3枚给你：“这是我欠海的。”","获得蓝色贝壳（风眼贝1/3）"],
+            2: ["被你护住的渔妇突然认出：“那护盾的光……和我丈夫出海前求的妈祖符一模一样！”","她泣不成声，其余渔妇停下怨浪。","你拿出收集的3枚铜钱递给她们：“这是你们丈夫最后买的鱼干钱。”","铜钱沉入水中，化作三盏水灯浮上来，灯光里映出那些船员的微笑。","获得绿色贝壳（风眼贝2/3）"],
+            3: ["你把3枚铜钱放入怨灵手心。少年摇头：“不够，要九枚……”","你用护盾的光罩住他：“我只有三枚，但我可以当你三分钟的‘妈妈’。”","你轻轻抱住他。三分钟后，少年化作一片花瓣飘散，铜钱变成九朵小贝壳花，落在你手中。","获得红色贝壳（风眼贝3/3）"],
+            4: ["当9枚铜钱全部落入香炉，护盾碎裂成光尘。三个龙卷风合一，直扑神像。","你下意识挡在神像前。闭眼前，听见妈祖的声音：“你已给了太多，这次，换我护你。”","所有铜钱冲出香炉，化作金色锁链缠住龙卷风；护盾碎片重新拼合，变成一个圆形穹顶，罩住你与妈祖。","万年风眼彻底化作清风吹遍大海。妈祖神像恢复笑容，走下神坛，化作一位蓝衣少女。","全剧终。"]
+        };
+        const endingLines = [
+            "蓝衣少女牵着你走出风眼祠，外面竟是你出发的那个小渔村。村民围上来，惊喜道：“龙卷风停了好几天了！海面平得像镜子！”",
+            "你回头，身后只有一座普普通通的小妈祖庙。但你的口袋里多了一枚铜钱，上面刻着：",
+            "“善心即是护盾，一念可化千金。”",
+            "蓝衣少女朝你眨眨眼，消失在香火青烟里。",
+            "从此每当海上有风龙卷起，你知道总有人会勇敢地举起护盾——因为你就是妈祖留在人间的眼睛和手。"
+        ];
+        
+        function showStory(level, onClose) {
+            showStorySequential(levelStories[level], `第 ${level} 关 · ${level===1?'贪风礁':level===2?'怨浪湾':level===3?'空螺渊':'风眼祠'}`, 'story', onClose);
+        }
+        function showTheater(level, onClose) {
+            showStorySequential(theaterLines[level], "🎭 小剧场", 'theater', onClose);
+        }
+        function showPrologue(callback) {
+            showStorySequential(prologueLines, "🌊 序章 · 妈祖的呼唤", 'prologue', callback);
+        }
+        function showEnding(onClose) {
+            showStorySequential(endingLines, "🏆 功德圆满 🏆", 'ending', onClose);
+        }
+        
+        // ----- 游戏对象生成 -----
+        function spawnCoin() {
+            const g = new THREE.BoxGeometry(0.6,0.1,0.6);
+            const m = new THREE.MeshStandardMaterial({color:0xffaa44,metalness:0.8});
+            const c = new THREE.Mesh(g,m);
+            c.position.set((Math.random()-0.5)*(boundary*2-4),0.3,(Math.random()-0.5)*(boundary*2-4));
+            c.userData={type:'coin'};
+            scene.add(c);
+            coins.push(c);
+        }
+        
+        function spawnTornado() {
+            const g = new THREE.CylinderGeometry(0.8,0.2,1.5,8);
+            const m = new THREE.MeshStandardMaterial({color:0xaa5555,emissive:0x441111});
+            const t = new THREE.Mesh(g,m);
+            t.position.set((Math.random()-0.5)*(boundary*2-6),0.2,(Math.random()-0.5)*(boundary*2-6));
+            const baseSpeed=2.5;
+            const speedMult=(currentLevel===4)?level4SpeedMultiplier:1.0;
+            t.userData={type:'tornado', vx:(Math.random()-0.5)*baseSpeed*speedMult, vz:(Math.random()-0.5)*baseSpeed*speedMult};
+            scene.add(t);
+            tornadoes.push(t);
+            return t;
+        }
+        
+        function updateAllTornadoSpeed() {
+            const baseSpeed=2.5;
+            const speedMult=(currentLevel===4)?level4SpeedMultiplier:1.0;
+            tornadoes.forEach(t=>{
+                const dirX=Math.sign(t.userData.vx)||1;
+                const dirZ=Math.sign(t.userData.vz)||1;
+                t.userData.vx=dirX*baseSpeed*speedMult;
+                t.userData.vz=dirZ*baseSpeed*speedMult;
+            });
+        }
+        
+        function spawnShield() {
+            const g = new THREE.SphereGeometry(0.5,16,16);
+            const m = new THREE.MeshStandardMaterial({color:0x33aaff,emissive:0x2266aa,transparent:true,opacity:0.7});
+            const s = new THREE.Mesh(g,m);
+            s.position.set((Math.random()-0.5)*(boundary*2-5),0.4,(Math.random()-0.5)*(boundary*2-5));
+            s.userData={type:'shield'};
+            scene.add(s);
+            shields.push(s);
+            setTimeout(()=>{
+                const idx=shields.indexOf(s);
+                if(idx!==-1){ scene.remove(s); shields.splice(idx,1); }
+            },15000);
+        }
+        
+        function activateShield() {
+            if(shieldActive) return;
+            shieldActive=true;
+            shieldEndTime=Date.now()+5000;
+            showMessage("✨ 获得护盾！5秒无敌 ✨","#88aaff");
+            updateUI();
+            setTimeout(()=>{
+                if(shieldActive && Date.now()>=shieldEndTime){
+                    shieldActive=false;
+                    updateUI();
+                    showMessage("护盾消失","#ff8866");
+                }
+            },5000);
+        }
+        
+        function removeTornado(tornado) {
+            const idx=tornadoes.indexOf(tornado);
+            if(idx!==-1){
+                scene.remove(tornado);
+                tornadoes.splice(idx,1);
+                if(tornadoRespawnTimer) clearTimeout(tornadoRespawnTimer);
+                tornadoRespawnTimer=setTimeout(()=>{
+                    if(gameActive && !levelCompleted){
+                        const initialCount=[1,2,2,3][currentLevel-1];
+                        if(tornadoes.length<initialCount) spawnTornado();
+                    }
+                },8000);
+            }
+        }
+        
+        function increaseStormSpeed() {
+            if(currentLevel!==4) return;
+            level4SpeedMultiplier+=0.3;
+            updateAllTornadoSpeed();
+            showMessage(`风暴力量增强！速度提升 ${Math.round((level4SpeedMultiplier-1)*100)}%`,"#ff8855");
+        }
+        
+        function initLevelObjects() {
+            coins.forEach(c=>scene.remove(c));
+            tornadoes.forEach(t=>scene.remove(t));
+            shields.forEach(s=>scene.remove(s));
+            coins=[]; tornadoes=[]; shields=[];
+            if(tornadoStealInterval) clearInterval(tornadoStealInterval);
+            if(shieldTimerInterval) clearInterval(shieldTimerInterval);
+            if(tornadoRespawnTimer) clearTimeout(tornadoRespawnTimer);
+            const level=currentLevel;
+            for(let i=0;i<targetCoins[level-1];i++) spawnCoin();
+            const tornadoCount=[1,2,2,3][level-1];
+            for(let i=0;i<tornadoCount;i++) spawnTornado();
+            shieldTimerInterval=setInterval(()=>{
+                if(gameActive && !paused && !levelCompleted) spawnShield();
+            },12000);
+            if(level===3){
+                tornadoStealInterval=setInterval(()=>{
+                    if(gameActive && !paused && !levelCompleted && score>0 && !shieldActive){
+                        score=Math.max(0,score-1);
+                        updateUI();
+                        showMessage("龙卷风偷走一枚铜钱！","#ff8866");
+                        if(score<targetCoins[2]) spawnCoin();
+                    }
+                },10000);
+            }
+            if(level===4){ level4SpeedMultiplier=1.0; lastSpeedIncreaseScore=0; }
+        }
+        
+        function resetGameStateForLevel(level) {
+            if(tornadoStealInterval) clearInterval(tornadoStealInterval);
+            if(shieldTimerInterval) clearInterval(shieldTimerInterval);
+            if(tornadoRespawnTimer) clearTimeout(tornadoRespawnTimer);
+            coins.forEach(c=>scene.remove(c)); tornadoes.forEach(t=>scene.remove(t)); shields.forEach(s=>scene.remove(s));
+            coins=[]; tornadoes=[]; shields=[];
+            if(mazu) mazu.position.set(0,0,0);
+            score=0; shieldActive=false; specialConditionMet=false; storyTriggered=false; levelCompleted=false; shieldPickupCount=0;
+            currentLevel=level; updateUI(); gameActive=false; paused=false;
+            if(level===4){ level4SpeedMultiplier=1.0; lastSpeedIncreaseScore=0; }
+        }
+        
+        // 铜钱收集：补充新铜钱（保持场景中铜钱数量稳定）
+        function onCoinCollected() {
+            score++;
+            updateUI();
+            showMessage("+1 铜钱","#ffdd88");
+            playSound(soundCoin);
+            // 立即补充一枚铜钱（保证场景中始终有足够铜钱可收集）
+            spawnCoin();
+            if(currentLevel===4 && score%3===0 && score<=9 && score>lastSpeedIncreaseScore){
+                increaseStormSpeed();
+                lastSpeedIncreaseScore=score;
+            }
+            if(score>=targetCoins[currentLevel-1]) checkLevelComplete();
+        }
+        
+        function checkLevelComplete() {
+            if(levelCompleted || storyTriggered) return;
+            const required=targetCoins[currentLevel-1];
+            let condition=false;
+            if(currentLevel<=3) condition=(score>=required && specialConditionMet);
+            else condition=(score>=required);
+            if(condition){
+                storyTriggered=true; levelCompleted=true; gameActive=false;
+                stopCurrentBGM();
+                showTheater(currentLevel,()=>{
+                    if(currentLevel===4){
+                        showEnding(()=>{
+                            document.getElementById('level-select').style.display='flex';
+                            document.getElementById('ui').style.display='none';
+                            document.getElementById('controls-tip').style.display='none';
+                            resetGameStateForLevel(currentLevel);
+                            gameActive=false; stopCurrentBGM();
+                        });
+                    }else{
+                        if(currentLevel<4){ unlockedLevels[currentLevel]=true; localStorage.setItem('unlockedLevels',JSON.stringify(unlockedLevels)); }
+                        document.getElementById('level-select').style.display='flex';
+                        document.getElementById('ui').style.display='none';
+                        document.getElementById('controls-tip').style.display='none';
+                        resetGameStateForLevel(currentLevel);
+                        updateLevelSelectButtons();
+                        gameActive=false; stopCurrentBGM();
+                    }
+                });
+            }
+        }
+        
+        function updateLevelSelectButtons() {
+            const btns=document.querySelectorAll('.level-btn');
+            btns.forEach((btn,idx)=>{
+                if(unlockedLevels[idx]){ btn.classList.remove('disabled'); btn.disabled=false; }
+                else{ btn.classList.add('disabled'); btn.disabled=true; }
+            });
+        }
+        
+        function startLevel(level) {
+            currentPlayingLevel=level; currentLevel=level;
+            document.getElementById('level-select').style.display='none';
+            document.getElementById('ui').style.display='block';
+            document.getElementById('controls-tip').style.display='block';
+            resetGameStateForLevel(level);
+            playBGM(bgmGame);
+            showStory(level,()=>{
+                initLevelObjects();
+                gameActive=true;
+                paused=false;
+                levelCompleted=false;
+                storyTriggered=false;
+                specialConditionMet=false;
+                shieldPickupCount=0;
+                score=0;
+                updateUI();
+                playBGM(bgmGame);
+            });
+        }
+        
+        function restartLevel() {
+            if(!gameActive && !levelCompleted) return;
+            resetGameStateForLevel(currentLevel);
+            initLevelObjects();
+            gameActive=true; paused=false; levelCompleted=false; storyTriggered=false; specialConditionMet=false; shieldPickupCount=0; score=0;
+            updateUI(); playBGM(bgmGame); showMessage("重开本关","#88aaff");
+        }
+        
+        // ---------- 暂停菜单（带完整UI）----------
+        function togglePause() {
+            if(!gameActive || levelCompleted) return;
+            paused = !paused;
+            if(paused){
+                if(bgmGame && bgmGame.isPlaying) bgmGame.pause();
+                const div = document.createElement('div');
+                div.className = 'pause-menu';
+                div.innerHTML = `
+                    <div class="story-card">
+                        <h2>⏸ 游戏暂停</h2>
+                        <button id="resume-btn">继续游戏</button>
+                        <button id="restart-level">重新开始本关</button>
+                        <button id="exit-level">返回关卡选择</button>
+                    </div>
+                `;
+                document.body.appendChild(div);
+                div.querySelector('#resume-btn').onclick = () => { div.remove(); togglePause(); if(bgmGame && !bgmGame.isPlaying) bgmGame.play(); };
+                div.querySelector('#restart-level').onclick = () => { div.remove(); restartLevel(); };
+                div.querySelector('#exit-level').onclick = () => {
+                    div.remove();
+                    document.getElementById('level-select').style.display = 'flex';
+                    document.getElementById('ui').style.display = 'none';
+                    document.getElementById('controls-tip').style.display = 'none';
+                    resetGameStateForLevel(currentLevel);
+                    gameActive = false;
+                    stopCurrentBGM();
+                };
+            } else {
+                const pmenu = document.querySelector('.pause-menu');
+                if(pmenu) pmenu.remove();
+                if(bgmGame && !bgmGame.isPlaying) bgmGame.play();
+            }
+        }
+        
+        // ----- 移动逻辑（基于相机方向）-----
+        function handleMovement(delta) {
+            if(!gameActive || paused || levelCompleted || !mazu) return;
+            const cameraDir = camera.getWorldDirection(new THREE.Vector3());
+            const forward = new THREE.Vector3(cameraDir.x, 0, cameraDir.z).normalize();
+            const right = new THREE.Vector3(-forward.z, 0, forward.x);
+            let moveDir = new THREE.Vector3(0,0,0);
+            if(keyState.w || keyState.ArrowUp) moveDir.add(forward);
+            if(keyState.s || keyState.ArrowDown) moveDir.sub(forward);
+            if(keyState.d || keyState.ArrowRight) moveDir.add(right);
+            if(keyState.a || keyState.ArrowLeft) moveDir.sub(right);
+            if(moveDir.length()>0) moveDir.normalize();
+            const speed = moveSpeed * delta;
+            let newX = mazu.position.x + moveDir.x * speed;
+            let newZ = mazu.position.z + moveDir.z * speed;
+            newX = Math.min(boundary, Math.max(-boundary, newX));
+            newZ = Math.min(boundary, Math.max(-boundary, newZ));
+            mazu.position.set(newX, 0, newZ);
+            if(moveDir.length()>0.01) mazu.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+            else mazu.rotation.y = Math.atan2(forward.x, forward.z);
+        }
+        
+        // ----- 加载音频 -----
+        function loadAudio(audioLoader, listener, url, volume=1, loop=false) {
+            const sound = new THREE.Audio(listener);
+            audioLoader.load(url, (buffer) => { sound.setBuffer(buffer); sound.setVolume(volume); sound.setLoop(loop); }, undefined, (err) => console.warn(`加载音频失败: ${url}`, err));
+            return sound;
+        }
+        
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a2f44);
+            scene.fog = new THREE.FogExp2(0x0a2f44, 0.02);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(8,6,12);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            // 让canvas可聚焦，保证键盘事件
+            renderer.domElement.setAttribute('tabindex', '0');
+            renderer.domElement.style.outline = 'none';
+            renderer.domElement.addEventListener('click', () => renderer.domElement.focus());
+            renderer.domElement.focus();
+            
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.rotateSpeed = 1.0;
+            controls.zoomSpeed = 1.0;
+            controls.target.set(0,1,0);
+            
+            // 光照
+            const ambient = new THREE.AmbientLight(0x404060);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            dirLight.position.set(5,10,7);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+            const backLight = new THREE.PointLight(0x6688ff,0.5);
+            backLight.position.set(-3,2,-5);
+            scene.add(backLight);
+            const grid = new THREE.GridHelper(30,20,0x88aaff,0x335588);
+            grid.position.y = -1.2;
+            scene.add(grid);
+            
+            // 音频
+            const listener = new THREE.AudioListener();
+            camera.add(listener);
+            const audioLoader = new THREE.AudioLoader();
+            soundCoin = loadAudio(audioLoader, listener, 'sounds/coin.wav',0.5);
+            soundShield = loadAudio(audioLoader, listener, 'sounds/shield_pickup.wav',0.6);
+            soundHit = loadAudio(audioLoader, listener, 'sounds/hit_damage.wav',0.7);
+            soundShieldBlock = loadAudio(audioLoader, listener, 'sounds/shield_block.wav',0.7);
+            soundStoryClick = loadAudio(audioLoader, listener, 'sounds/story_click.wav',0.4);
+            bgmGame = loadAudio(audioLoader, listener, 'sounds/bgm_game.mp3',0.5,true);
+            bgmStory = loadAudio(audioLoader, listener, 'sounds/bgm_story.mp3',0.5,true);
+            bgmPrologue = loadAudio(audioLoader, listener, 'sounds/bgm_prologue.mp3',0.5,true);
+            bgmTheater = loadAudio(audioLoader, listener, 'sounds/bgm_theater.mp3',0.5,true);
+            bgmEnding = loadAudio(audioLoader, listener, 'sounds/bgm_ending.mp3',0.5,true);
+            
+            // 妈祖模型
+            const mazuBox = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.8), new THREE.MeshStandardMaterial({color:0x44aa88}));
+            const loader = new GLTFLoader();
+            loader.load('models/mazu.glb', (gltf) => { if(mazu) scene.remove(mazu); mazu = gltf.scene; mazu.scale.set(0.7,0.7,0.7); mazu.position.set(0,0,0); mazu.castShadow=true; scene.add(mazu); }, undefined, (err) => { console.warn("妈祖模型加载失败，使用立方体", err); mazu = mazuBox; scene.add(mazu); });
+            loader.load('models/shuixiashijie.glb', (gltf) => { const env = gltf.scene; env.position.y = -1.5; scene.add(env); }, undefined, () => {});
+            
+            // 动画循环
+            let lastTime = performance.now();
+            function animate() {
+                const now = performance.now();
+                let delta = Math.min(0.033, (now-lastTime)/1000);
+                lastTime = now;
+                handleMovement(delta);
+                for(let i=0;i<tornadoes.length;i++){ const t = tornadoes[i]; if(t.userData.vx!==undefined){ t.position.x += t.userData.vx*delta; t.position.z += t.userData.vz*delta; if(Math.abs(t.position.x)>boundary) t.userData.vx*=-1; if(Math.abs(t.position.z)>boundary) t.userData.vz*=-1; t.position.x = Math.min(boundary,Math.max(-boundary,t.position.x)); t.position.z = Math.min(boundary,Math.max(-boundary,t.position.z)); } t.rotation.y += 2*delta; }
+                coins.forEach(c=>{ c.rotation.y+=0.02; c.rotation.x=Math.sin(Date.now()*0.008)*0.2; });
+                shields.forEach(s=>{ s.position.y = 0.4+Math.sin(Date.now()*0.006)*0.1; });
+                if(mazu && gameActive && !paused && !levelCompleted){
+                    const pos = mazu.position;
+                    // 铜钱碰撞
+                    for(let i=0;i<coins.length;i++){
+                        if(pos.distanceTo(coins[i].position)<1.0){
+                            scene.remove(coins[i]); coins.splice(i,1);
+                            onCoinCollected(); // 内部会补充新铜钱
+                            break;
+                        }
+                    }
+                    // 护盾碰撞
+                    for(let i=0;i<shields.length;i++){
+                        if(pos.distanceTo(shields[i].position)<1.0){
+                            scene.remove(shields[i]); shields.splice(i,1);
+                            activateShield(); playSound(soundShield);
+                            if(currentLevel<=3){ specialConditionMet=true; checkLevelComplete(); }
+                            break;
+                        }
+                    }
+                    // 风暴碰撞
+                    for(let i=0;i<tornadoes.length;i++){
+                        const tor=tornadoes[i];
+                        if(pos.distanceTo(tor.position)<1.2){
+                            if(!shieldActive){
+                                score=Math.max(0,score-2); updateUI(); showMessage("被风暴击中 -2","#ff6666"); playSound(soundHit);
+                                removeTornado(tor);
+                            } else {
+                                showMessage("护盾抵挡风暴！","#88aaff"); playSound(soundShieldBlock);
+                                removeTornado(tor);
+                            }
+                            break;
+                        }
+                    }
+                }
+                if(shieldActive && Date.now()>shieldEndTime){ shieldActive=false; updateUI(); }
+                if(mazu) controls.target.lerp(mazu.position,0.05);
+                controls.update();
+                renderer.render(scene,camera);
+                requestAnimationFrame(animate);
+            }
+            animate();
+            window.addEventListener('resize', ()=>{ camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth,window.innerHeight); });
+        }
+        
+        // ----- 键盘监听（空格/Q/ESC 均可暂停）-----
+        function initKeyboard() {
+            window.addEventListener('keydown', (e) => {
+                const k = e.key;
+                if (k === ' ' || k === 'Space' || k === 'q' || k === 'Q' || k === 'Escape') {
+                    e.preventDefault();
+                    if (gameActive && !levelCompleted) togglePause();
+                }
+                if (k === 'r' || k === 'R') {
+                    e.preventDefault();
+                    if (gameActive && !levelCompleted) restartLevel();
+                }
+                if (keyState.hasOwnProperty(k)) keyState[k] = true;
+                if (k === 'ArrowUp') keyState.ArrowUp = true;
+                if (k === 'ArrowDown') keyState.ArrowDown = true;
+                if (k === 'ArrowLeft') keyState.ArrowLeft = true;
+                if (k === 'ArrowRight') keyState.ArrowRight = true;
+            });
+            window.addEventListener('keyup', (e) => {
+                const k = e.key;
+                if (keyState.hasOwnProperty(k)) keyState[k] = false;
+                if (k === 'ArrowUp') keyState.ArrowUp = false;
+                if (k === 'ArrowDown') keyState.ArrowDown = false;
+                if (k === 'ArrowLeft') keyState.ArrowLeft = false;
+                if (k === 'ArrowRight') keyState.ArrowRight = false;
+            });
+        }
+        
+        // 启动游戏
+        try { const saved = localStorage.getItem('unlockedLevels'); if(saved) unlockedLevels = JSON.parse(saved); } catch(e) {}
+        document.getElementById('start-game-btn').onclick = () => {
+            document.getElementById('start-screen').style.display = 'none';
+            showPrologue(() => {
+                document.getElementById('level-select').style.display = 'flex';
+                updateLevelSelectButtons();
+                document.querySelectorAll('.level-btn').forEach(btn => {
+                    btn.onclick = () => { const level = parseInt(btn.getAttribute('data-level')); if(unlockedLevels[level-1]) startLevel(level); };
+                });
+            });
+        };
+        initKeyboard();
+        init();
+    </script>
+</body>
+</html>
