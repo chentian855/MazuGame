@@ -382,27 +382,52 @@
         
         // ----- 游戏对象生成 -----
         function spawnCoin() {
-            const g = new THREE.BoxGeometry(0.6,0.1,0.6);
-            const m = new THREE.MeshStandardMaterial({color:0xffaa44,metalness:0.8});
-            const c = new THREE.Mesh(g,m);
-            c.position.set((Math.random()-0.5)*(boundary*2-4),0.3,(Math.random()-0.5)*(boundary*2-4));
-            c.userData={type:'coin'};
-            scene.add(c);
-            coins.push(c);
-        }
+    // 如果模型还没加载好，临时用立方体（避免报错）
+    if (!coinModel) {
+        const g = new THREE.BoxGeometry(0.6,0.1,0.6);
+        const m = new THREE.MeshStandardMaterial({color:0xffaa44,metalness:0.8});
+        const c = new THREE.Mesh(g,m);
+        c.position.set((Math.random()-0.5)*(boundary*2-4),0.3,(Math.random()-0.5)*(boundary*2-4));
+        c.userData = {type:'coin'};
+        scene.add(c);
+        coins.push(c);
+        return;
+    }
+    const c = coinModel.clone();
+    c.position.set((Math.random()-0.5)*(boundary*2-4),0.3,(Math.random()-0.5)*(boundary*2-4));
+    c.userData = {type:'coin'};
+    // 调整大小（根据你的模型实际尺寸可能需要修改）
+    c.scale.set(0.4,0.4,0.4);
+    scene.add(c);
+    coins.push(c);
+}
         
         function spawnTornado() {
-            const g = new THREE.CylinderGeometry(0.8,0.2,1.5,8);
-            const m = new THREE.MeshStandardMaterial({color:0xaa5555,emissive:0x441111});
-            const t = new THREE.Mesh(g,m);
-            t.position.set((Math.random()-0.5)*(boundary*2-6),0.2,(Math.random()-0.5)*(boundary*2-6));
-            const baseSpeed=2.5;
-            const speedMult=(currentLevel===4)?level4SpeedMultiplier:1.0;
-            t.userData={type:'tornado', vx:(Math.random()-0.5)*baseSpeed*speedMult, vz:(Math.random()-0.5)*baseSpeed*speedMult};
-            scene.add(t);
-            tornadoes.push(t);
-            return t;
-        }
+            if (!longjuanfengModel) {
+          // 回退圆柱体
+        const g = new THREE.CylinderGeometry(0.8,0.2,1.5,8);
+        const m = new THREE.MeshStandardMaterial({color:0xaa5555,emissive:0x441111});
+        const t = new THREE.Mesh(g,m);
+        t.position.set((Math.random()-0.5)*(boundary*2-6),0.2,(Math.random()-0.5)*(boundary*2-6));
+        const baseSpeed=2.5;
+        const speedMult=(currentLevel===4)?level4SpeedMultiplier:1.0;
+        t.userData = {type:'tornado', vx:(Math.random()-0.5)*baseSpeed*speedMult, vz:(Math.random()-0.5)*baseSpeed*speedMult};
+        scene.add(t);
+        tornadoes.push(t);
+        return t;
+    }
+    const t = longjuanfengModel.clone();
+    t.position.set((Math.random()-0.5)*(boundary*2-6),0.2,(Math.random()-0.5)*(boundary*2-6));
+    const baseSpeed=2.5;
+    const speedMult=(currentLevel===4)?level4SpeedMultiplier:1.0;
+    t.userData = {type:'tornado', vx:(Math.random()-0.5)*baseSpeed*speedMult, vz:(Math.random()-0.5)*baseSpeed*speedMult};
+    // 调整大小和旋转（根据你的模型可能需要微调）
+    t.scale.set(0.6,0.6,0.6);
+    scene.add(t);
+    tornadoes.push(t);
+    return t;
+}
+
         
         function updateAllTornadoSpeed() {
             const baseSpeed=2.5;
@@ -560,26 +585,37 @@
             });
         }
         
-        function startLevel(level) {
-            currentPlayingLevel=level; currentLevel=level;
-            document.getElementById('level-select').style.display='none';
-            document.getElementById('ui').style.display='block';
-            document.getElementById('controls-tip').style.display='block';
-            resetGameStateForLevel(level);
-            playBGM(bgmGame);
-            showStory(level,()=>{
-                initLevelObjects();
-                gameActive=true;
-                paused=false;
-                levelCompleted=false;
-                storyTriggered=false;
-                specialConditionMet=false;
-                shieldPickupCount=0;
-                score=0;
-                updateUI();
-                playBGM(bgmGame);
-            });
+       function startLevel(level) {
+    // 等待铜钱和龙卷风模型加载完成（轮询）
+    function waitForModels(cb) {
+        if (coinModel && longjuanfengModel) {
+            cb();
+        } else {
+            setTimeout(() => waitForModels(cb), 100);
         }
+    }
+    waitForModels(() => {
+        currentPlayingLevel = level;
+        currentLevel = level;
+        document.getElementById('level-select').style.display = 'none';
+        document.getElementById('ui').style.display = 'block';
+        document.getElementById('controls-tip').style.display = 'block';
+        resetGameStateForLevel(level);
+        playBGM(bgmGame);
+        showStory(level, () => {
+            initLevelObjects();
+            gameActive = true;
+            paused = false;
+            levelCompleted = false;
+            storyTriggered = false;
+            specialConditionMet = false;
+            shieldPickupCount = 0;
+            score = 0;
+            updateUI();
+            playBGM(bgmGame);
+        });
+    });
+}
         
         function restartLevel() {
             if(!gameActive && !levelCompleted) return;
@@ -708,9 +744,15 @@
             // 妈祖模型
             const mazuBox = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.8), new THREE.MeshStandardMaterial({color:0x44aa88}));
             const loader = new GLTFLoader();
-            loader.load('models/mazu.glb', (gltf) => { if(mazu) scene.remove(mazu); mazu = gltf.scene; mazu.scale.set(0.7,0.7,0.7); mazu.position.set(0,0,0); mazu.castShadow=true; scene.add(mazu); }, undefined, (err) => { console.warn("妈祖模型加载失败，使用立方体", err); mazu = mazuBox; scene.add(mazu); });
-            loader.load('models/shuixiashijie.glb', (gltf) => { const env = gltf.scene; env.position.y = -1.5; scene.add(env); }, undefined, () => {});
-            
+            loader.load('https://github.com/chentian855/MazuGame/releases/download/v1.0/mazu.glb', (gltf) => { if(mazu) scene.remove(mazu); mazu = gltf.scene; mazu.scale.set(0.7,0.7,0.7); mazu.position.set(0,0,0); mazu.castShadow=true; scene.add(mazu); }, undefined, (err) => { console.warn("妈祖模型加载失败，使用立方体", err); mazu = mazuBox; scene.add(mazu); });
+            loader.load('https://github.com/chentian855/MazuGame/releases/download/v1.0/shuixiashijie.glb', (gltf) => { const env = gltf.scene; env.position.y = -1.5; scene.add(env); }, undefined, () => {});
+            // 预加载铜钱和龙卷风模型（用于动态生成）
+            let coinModel = null;
+            let longjuanfengModel = null;
+
+            new GLTFLoader().load('https://github.com/chentian855/MazuGame/releases/download/v1.0/coin.glb', (gltf) => { coinModel = gltf.scene; });
+            new GLTFLoader().load('https://github.com/chentian855/MazuGame/releases/download/v1.0/longjuanfeng.glb', (gltf) => { longjuanfengModel = gltf.scene; });
+
             // 动画循环
             let lastTime = performance.now();
             function animate() {
