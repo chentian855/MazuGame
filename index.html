@@ -708,8 +708,8 @@
             // 妈祖模型
             const mazuBox = new THREE.Mesh(new THREE.BoxGeometry(0.8,1.2,0.8), new THREE.MeshStandardMaterial({color:0x44aa88}));
             const loader = new GLTFLoader();
-            loader.load('https://cdn.jsdelivr.net/gh/chentian855/MazuGame@v1.0/mazu.glb', (gltf) => { if(mazu) scene.remove(mazu); mazu = gltf.scene; mazu.scale.set(0.7,0.7,0.7); mazu.position.set(0,0,0); mazu.castShadow=true; scene.add(mazu); }, undefined, (err) => { console.warn("妈祖模型加载失败，使用立方体", err); mazu = mazuBox; scene.add(mazu); });
-            loader.load('https://cdn.jsdelivr.net/gh/chentian855/MazuGame@v1.0/shuixiashijie.glb', (gltf) => { const env = gltf.scene; env.position.y = -1.5; scene.add(env); }, undefined, () => {});
+            loader.load('models/mazu.glb', (gltf) => { if(mazu) scene.remove(mazu); mazu = gltf.scene; mazu.scale.set(0.7,0.7,0.7); mazu.position.set(0,0,0); mazu.castShadow=true; scene.add(mazu); }, undefined, (err) => { console.warn("妈祖模型加载失败，使用立方体", err); mazu = mazuBox; scene.add(mazu); });
+            loader.load('models/shuixiashijie.glb', (gltf) => { const env = gltf.scene; env.position.y = -1.5; scene.add(env); }, undefined, () => {});
             
             // 动画循环
             let lastTime = performance.now();
